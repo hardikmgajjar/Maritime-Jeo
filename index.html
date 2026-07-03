@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🏗️ Marine Terminal Jeopardy</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<!-- QR Code -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto+Mono:wght@400;700&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --cargo-orange: #FF6B00;
+  --gold:         #F5C842;
+  --gold-dim:     #C8972A;
+  --shipping-teal:#008080;
+  --deep-ocean:   #0A1128;
+  --navy:         #001F3F;
+  --panel:        #111E38;
+  --card:         #1C2D42;
+  --card2:        #253A54;
+  --used:         #0D1622;
+  --green:        #00E676;
+  --red:          #FF1744;
+  --text:         #EAEAEA;
+  --subtext:      #8FA0B5;
+  --border:       rgba(0,128,128,0.4);
+  --border2:      rgba(255,107,0,0.3);
+  --glow:         rgba(255,107,0,0.25);
+  --dd-color:     #FF6B00;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Barlow Condensed', sans-serif;
+  background: var(--deep-ocean);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(0,128,128,0.1) 0%, transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(255,107,0,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(245,200,66,0.03) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: repeating-linear-gradient(45deg, var(--cargo-orange), var(--cargo-orange) 10px, #000 10px, #000 20px);
+  z-index: 200;
+}
+
+.hidden { display: none !important; }
+
+button {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  transition: all .15s ease;
+  text-transform: uppercase;
+}
+button:active { transform: scale(0.96); }
+
+input, select {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), var(--cargo-orange));
+  color: #000;
+  padding: 10px 20px;
+  font-size: 1rem;
+  box-shadow: 0 2px 14px rgba(255,107,0,0.3);
+}
+.btn-gold:hover { box-shadow: 0 4px 22px rgba(255,107,0,0.5); filter: brightness(1.08); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 18px;
+  font-size: 0.95rem;
+}
+.btn-outline:hover { border-color: var(--cargo-orange); color: var(--cargo-orange); }
+
+.btn-green { background: var(--green); color: #000; padding: 10px 20px; font-size: 1rem; border-radius: 4px; }
+.btn-red   { background: var(--red);   color: #fff; padding: 10px 20px; font-size: 1rem; border-radius: 4px; }
+.btn-magenta { background: var(--shipping-teal); color: #fff; padding: 10px 20px; font-size: 1rem; border-radius: 4px; }
+
+/* HOST SCREEN */
+#host-screen {
+  position: relative;
+  z-index: 1;
+  padding: 16px 20px 40px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.game-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--text) 0%, var(--cargo-orange) 60%, var(--shipping-teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 0 12px rgba(255,107,0,0.3));
+  flex: 1;
+  min-width: 300px;
+}
+
+.room-pill {
+  background: linear-gradient(135deg, var(--shipping-teal), var(--navy));
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.round-pill {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 14px;
+  border-radius: 4px;
+}
+
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+#setup-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+#setup-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--shipping-teal), var(--cargo-orange), var(--gold));
+}
+
+.setup-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+#playerName {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 160px;
+}
+#playerName:focus { outline: none; border-color: var(--cargo-orange); box-shadow: 0 0 10px rgba(255,107,0,0.2); }
+#playerName::placeholder { color: var(--subtext); }
+
+#player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.p-chip {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: chipIn .2s ease;
+}
+@keyframes chipIn {
+  from { opacity:0; transform: scale(.8) translateY(-4px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.p-chip .rm {
+  cursor: pointer;
+  color: var(--red);
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity .1s;
+}
+.p-chip .rm:hover { opacity: 1; }
+
+#scoreboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.score-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 18px;
+  min-width: 120px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .3s;
+}
+.score-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--shipping-teal), var(--cargo-orange));
+  opacity: 0;
+  transition: opacity .3s;
+}
+.score-card.leading::after { opacity: 1; }
+.score-card.leading { border-color: var(--cargo-orange); }
+
+.sc-name {
+  font-size: 0.8rem;
+  color: var(--subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 2px;
+}
+.sc-val {
+  font-size: 1.55rem;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+.sc-val.negative { color: var(--red); }
+
+/* BOARD */
+.round-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.2rem;
+  color: var(--cargo-orange);
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  text-align: center;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+#board-wrap { overflow-x: auto; padding-bottom: 8px; }
+
+#board {
+  display: grid;
+  gap: 8px;
+  min-width: 620px;
+}
+
+.cat-header {
+  background: linear-gradient(160deg, var(--shipping-teal) 0%, var(--navy) 100%);
+  border-radius: 6px;
+  padding: 12px 8px;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.tile {
+  background: linear-gradient(160deg, var(--card) 0%, var(--card2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  transition: all .18s ease;
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,107,0,0.1) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity .18s;
+}
+.tile:hover::before { opacity: 1; }
+.tile:hover {
+  border-color: var(--cargo-orange);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255,107,0,0.25);
+}
+.tile.used {
+  background: var(--used);
+  color: transparent;
+  border-color: rgba(255,255,255,0.02);
+  pointer-events: none;
+  box-shadow: none;
+  transform: none;
+}
+.tile.used::after {
+  content: '⚓';
+  color: rgba(255,255,255,0.06);
+  font-size: 1.2rem;
+}
+
+/* QUESTION MODAL */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(5,10,20,0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  backdrop-filter: blur(5px);
+}
+.overlay.show { display: flex; }
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px 30px;
+  width: 92%;
+  max-width: 650px;
+  position: relative;
+  overflow: hidden;
+  animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn {
+  from { opacity:0; transform: scale(.88) translateY(24px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--shipping-teal), var(--cargo-orange), var(--gold), var(--cargo-orange), var(--shipping-teal));
+}
+
+.modal::after {
+  content: '⚓';
+  position: absolute;
+  top: 12px; right: 14px;
+  color: var(--shipping-teal);
+  opacity: 0.4;
+  font-size: 1.2rem;
+}
+
+.modal-badge {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.modal-cat-tag {
+  background: linear-gradient(135deg, var(--shipping-teal), var(--navy));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.modal-pts-tag {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+.modal-dd-tag {
+  background: linear-gradient(135deg, var(--cargo-orange), var(--gold));
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 4px;
+  animation: ddPulse 1.5s ease-in-out infinite;
+}
+@keyframes ddPulse {
+  0%,100% { box-shadow: 0 0 8px rgba(255,107,0,0.4); }
+  50%      { box-shadow: 0 0 20px rgba(255,107,0,0.8); }
+}
+
+#qtext {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1.35rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 20px;
+  min-height: 60px;
+}
+
+#answer-reveal {
+  background: rgba(0,230,118,0.08);
+  border: 1px solid rgba(0,230,118,0.25);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 16px;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── BUZZ TIMER ── */
+#buzz-timer-wrap {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 16px;
+}
+#buzz-timer-wrap.active { display: flex; }
+
+#buzz-timer-label {
+  font-size: 0.72rem;
+  color: var(--subtext);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+#buzz-timer-bar-wrap {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  height: 8px;
+  overflow: hidden;
+}
+#buzz-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--gold));
+  border-radius: 2px;
+  transition: width 0.25s linear, background-color 0.5s;
+  width: 100%;
+}
+#buzz-timer-bar.urgent { background: linear-gradient(90deg, var(--red), var(--cargo-orange)); }
+
+#buzz-timer-num {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--gold);
+  min-width: 28px;
+  text-align: right;
+}
+#buzz-timer-num.urgent { color: var(--red); }
+
+/* Daily Double Wager */
+#dd-wager-panel {
+  background: var(--card2);
+  border: 1px solid rgba(255,107,0,0.4);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.dd-wager-title {
+  font-size: 0.75rem;
+  color: var(--cargo-orange);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.dd-player-select {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.dd-player-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dd-player-btn.selected {
+  background: linear-gradient(135deg, var(--cargo-orange), var(--gold));
+  color: #000;
+  border-color: transparent;
+}
+.dd-wager-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#dd-wager-input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 120px;
+}
+#dd-wager-input:focus { outline: none; border-color: var(--cargo-orange); }
+
+/* Buzz box */
+.buzz-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.buzz-box-label {
+  font-size: 0.72rem;
+  color: var(--subtext);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.buzz-winner-name {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--gold);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.buzz-queue-list {
+  font-size: 0.82rem;
+  color: var(--subtext);
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.modal-actions button { flex: 1; min-width: 80px; font-size: 0.92rem; padding: 10px 8px; }
+.btn-reveal { background: var(--navy); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; }
+.btn-reveal:hover { background: #002d5f; }
+.btn-close-modal { background: rgba(255,255,255,0.05); color: var(--subtext); border-radius: 4px; }
+.btn-close-modal:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+/* FINAL JEOPARDY MODAL */
+#fj-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 30px;
+  width: 92%;
+  max-width: 640px;
+  position: relative;
+  overflow: hidden;
+  animation: modalIn .25s ease;
+}
+#fj-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: repeating-linear-gradient(45deg, var(--gold), var(--gold) 10px, var(--cargo-orange) 10px, var(--cargo-orange) 20px);
+}
+
+.fj-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 0 14px rgba(245,200,66,0.3));
+}
+
+.fj-category {
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--cargo-orange);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  font-weight: 700;
+}
+
+/* FJ Phase 1 */
+#fj-wager-note {
+  font-size: 0.85rem;
+  color: var(--subtext);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* FJ Phase 2 */
+#fj-question-phase { display: none; }
+
+.fj-question {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 20px;
+  text-align: center;
+  min-height: 60px;
+}
+
+.fj-wagers {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.fj-player-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fj-player-name { font-weight: 700; font-size: 1rem; flex: 1; min-width: 80px; }
+.fj-player-score { color: var(--gold); font-weight: 700; font-size: 1rem; min-width: 70px; }
+.fj-wager-in {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  width: 110px;
+}
+.fj-wager-in:focus { outline: none; border-color: var(--gold); }
+.fj-correct-btn { background: var(--green); color:#000; padding:6px 14px; border-radius:4px; font-size:0.9rem; cursor:pointer; }
+.fj-wrong-btn   { background: var(--red);   color:#fff; padding:6px 14px; border-radius:4px; font-size:0.9rem; cursor:pointer; }
+
+.fj-locked-wager {
+  background: rgba(255,107,0,0.1);
+  border: 1px solid rgba(255,107,0,0.3);
+  border-radius: 4px;
+  padding: 4px 12px;
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 80px;
+  text-align: center;
+}
+
+.fj-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.fj-actions button { flex: 1; min-width: 120px; }
+
+/* QR PANEL */
+#qr-panel {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100%;
+  width: 280px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  padding: 32px 22px 24px;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  z-index: 300;
+  overflow-y: auto;
+}
+#qr-panel.open { transform: translateX(0); }
+
+#qr-panel h3 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.2rem;
+  color: var(--gold);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+#qr-panel p { font-size: 0.85rem; color: var(--subtext); line-height: 1.5; margin-bottom: 18px; }
+#qr-box { background: #fff; padding: 12px; border-radius: 6px; display: inline-block; }
+#qr-link {
+  word-break: break-all;
+  font-size: 0.7rem;
+  color: var(--subtext);
+  margin-top: 10px;
+  display: block;
+  line-height: 1.4;
+}
+.qr-close-btn {
+  margin-top: 18px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 9px 18px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* WINNER SCREEN */
+#winner-screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.winner-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--gold), var(--cargo-orange), var(--shipping-teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(255,107,0,0.4));
+  margin-bottom: 8px;
+  animation: titlePop .6s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes titlePop {
+  from { opacity:0; transform: scale(.7); }
+  to   { opacity:1; transform: scale(1); }
+}
+
+.winner-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 3.5rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin: 10px 0 30px;
+  filter: drop-shadow(0 0 24px rgba(245,200,66,0.5));
+  animation: titlePop .6s .15s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+.final-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 30px;
+}
+
+.lb-row {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: slideUp .4s ease both;
+}
+.lb-row:nth-child(1) { animation-delay: .1s; }
+.lb-row:nth-child(2) { animation-delay: .2s; }
+.lb-row:nth-child(3) { animation-delay: .3s; }
+.lb-row:nth-child(4) { animation-delay: .4s; }
+.lb-row:nth-child(5) { animation-delay: .5s; }
+@keyframes slideUp {
+  from { opacity:0; transform: translateY(20px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.lb-rank { font-size: 1.3rem; font-weight: 900; color: var(--subtext); min-width: 30px; }
+.lb-rank.gold { color: var(--gold); }
+.lb-name { font-size: 1.1rem; font-weight: 700; flex: 1; }
+.lb-score { font-size: 1.2rem; font-weight: 900; color: var(--gold); }
+
+/* PHONE SCREEN */
+#phone-screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+#join-panel { width: 100%; max-width: 360px; }
+
+.join-logo {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--gold), var(--cargo-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+.join-subtitle {
+  color: var(--subtext);
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+.join-room-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--shipping-teal), var(--navy));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 4px 14px;
+  border-radius: 4px;
+  margin-bottom: 28px;
+}
+
+#joinName {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 18px;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  width: 100%;
+  margin-bottom: 12px;
+  text-align: center;
+}
+#joinName:focus { outline: none; border-color: var(--cargo-orange); }
+#joinName::placeholder { color: var(--subtext); }
+
+#btn-join {
+  width: 100%;
+  background: linear-gradient(135deg, var(--gold), var(--cargo-orange));
+  color: #000;
+  font-size: 1.15rem;
+  padding: 14px;
+  border-radius: 4px;
+  box-shadow: 0 4px 18px rgba(255,107,0,0.3);
+}
+
+#buzzer-panel { width: 100%; max-width: 360px; }
+
+.p-display-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.5rem;
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+.p-display-room {
+  color: var(--subtext);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+}
+.p-my-score {
+  color: var(--text);
+  font-size: 1rem;
+  margin-bottom: 24px;
+}
+.p-my-score span { color: var(--gold); font-weight: 900; font-size: 1.3rem; }
+
+/* Phone-side answer timer */
+#phone-timer-wrap {
+  display: none;
+  background: var(--card2);
+  border: 1px solid rgba(255,107,0,0.25);
+  border-radius: 4px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+#phone-timer-wrap.active { display: flex; }
+#phone-timer-bar-wrap {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  height: 8px;
+  overflow: hidden;
+}
+#phone-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--gold));
+  border-radius: 2px;
+  transition: width 0.25s linear;
+  width: 100%;
+}
+#phone-timer-bar.urgent { background: linear-gradient(90deg, var(--red), var(--cargo-orange)); }
+#phone-timer-num {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--gold);
+  min-width: 24px;
+  text-align: right;
+}
+#phone-timer-num.urgent { color: var(--red); }
+
+#buzz-btn {
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FF8C00 0%, #FF4500 50%, #8B0000 100%);
+  color: #fff;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 0 0 6px rgba(255,107,0,0.18),
+    0 0 50px rgba(255,107,0,0.35),
+    0 8px 30px rgba(0,0,0,0.6);
+  border: 3px solid rgba(255,255,255,0.2);
+  transition: transform .12s ease, box-shadow .12s ease;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+#buzz-btn::after {
+  content: '';
+  position: absolute;
+  top: 12%; left: 18%;
+  width: 35%;
+  height: 25%;
+  background: rgba(255,255,255,0.15);
+  border-radius: 50%;
+  filter: blur(4px);
+}
+#buzz-btn:hover { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(255,107,0,0.22), 0 0 70px rgba(255,107,0,0.5), 0 10px 36px rgba(0,0,0,0.7); }
+#buzz-btn:active { transform: scale(0.93); }
+
+#buzz-btn.locked {
+  background: radial-gradient(circle at 38% 32%, #333 0%, #151515 100%);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  cursor: default;
+  color: #555;
+  border-color: rgba(255,255,255,0.05);
+}
+#buzz-btn.locked:hover { transform: none; }
+
+#buzz-btn.buzzed-me {
+  background: radial-gradient(circle at 38% 32%, #4ade80 0%, #16a34a 100%);
+  box-shadow: 0 0 0 8px rgba(74,222,128,0.2), 0 0 50px rgba(34,197,94,0.5);
+  color: #fff;
+}
+
+#phone-status {
+  font-size: 1.05rem;
+  color: var(--subtext);
+  min-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 24px;
+}
+#phone-status.win  { color: var(--green); font-size: 1.1rem; }
+#phone-status.lose { color: var(--red); }
+#phone-status.queue { color: var(--cargo-orange); }
+
+.phone-lb {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.phone-lb-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+.phone-lb-row.me-row { border-color: var(--cargo-orange); background: var(--card2); }
+.phone-lb-row .plb-rank { color: var(--subtext); min-width: 20px; }
+.phone-lb-row .plb-name { flex: 1; }
+.phone-lb-row .plb-score { color: var(--gold); font-weight: 700; }
+
+#phone-wager-panel {
+  background: var(--card2);
+  border: 1px solid rgba(255,107,0,0.4);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+.phone-wager-title { font-size: 0.85rem; color: var(--cargo-orange); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+#phone-wager-amount {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 100%;
+  margin-bottom: 10px;
+  text-align: center;
+}
+#phone-wager-amount:focus { outline: none; border-color: var(--cargo-orange); }
+#btn-submit-wager {
+  width: 100%;
+  background: linear-gradient(135deg, var(--cargo-orange), var(--gold));
+  color: #000;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* CONFETTI */
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 9999;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+@media (max-width: 700px) {
+  .game-title { font-size: 1.4rem; }
+  .tile { font-size: 1.1rem; min-height: 52px; }
+  .cat-header { font-size: 0.75rem; min-height: 48px; padding: 8px 4px; }
+  .modal { padding: 22px 18px; }
+  #qtext { font-size: 1.1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- HOST SCREEN -->
+<div id="host-screen">
+
+  <div class="game-header">
+    <div class="game-title">🏗️ Marine Terminal Jeopardy</div>
+    <div id="room-pill" class="room-pill hidden"></div>
+    <div id="round-pill" class="round-pill hidden"></div>
+    <div class="header-actions">
+      <button class="btn-outline" onclick="toggleQR()" id="btn-qr">📱 QR Invite</button>
+      <button class="btn-gold" id="btn-start-game" onclick="startGame()">▶ Start Engine</button>
+      <button class="btn-outline hidden" id="btn-round2" onclick="goToRound2()">⚡ Round 2</button>
+      <button class="btn-magenta hidden" id="btn-final" onclick="startFinalJeopardy()">🌟 Final Jeopardy</button>
+    </div>
+  </div>
+
+  <div id="setup-panel">
+    <div class="setup-row">
+      <input id="playerName" placeholder="Enter operator name…" onkeydown="if(event.key==='Enter')addPlayer()"/>
+      <button class="btn-gold" onclick="addPlayer()">+ Manifest Player</button>
+    </div>
+    <div id="player-chips"></div>
+  </div>
+
+  <div id="scoreboard"></div>
+
+  <div id="board-label" class="round-title hidden"></div>
+  <div id="board-wrap"><div id="board"></div></div>
+
+</div>
+
+<!-- QR PANEL -->
+<div id="qr-panel">
+  <h3>📱 Terminal Access</h3>
+  <p>Operators scan this code on their mobile unit to link up to the buzzer terminal.</p>
+  <div id="qr-box"></div>
+  <span id="qr-link"></span>
+  <button class="qr-close-btn" onclick="toggleQR()">✕ Disconnect</button>
+</div>
+
+<!-- QUESTION MODAL -->
+<div class="overlay" id="q-modal">
+  <div class="modal">
+    <div class="modal-badge">
+      <span class="modal-cat-tag" id="m-cat"></span>
+      <span class="modal-pts-tag" id="m-pts"></span>
+      <span class="modal-dd-tag hidden" id="m-dd">✦ Daily Double</span>
+    </div>
+
+    <div id="qtext">—</div>
+
+    <div id="answer-reveal"></div>
+
+    <!-- Buzz Timer -->
+    <div id="buzz-timer-wrap">
+      <div id="buzz-timer-label">⏱ Demurrage Timer</div>
+      <div id="buzz-timer-bar-wrap"><div id="buzz-timer-bar"></div></div>
+      <div id="buzz-timer-num">10</div>
+    </div>
+
+    <!-- Daily Double Wager -->
+    <div id="dd-wager-panel" class="hidden">
+      <div class="dd-wager-title">✦ Daily Double — Allocate Operator &amp; Capital Wager</div>
+      <div class="dd-player-select" id="dd-player-btns"></div>
+      <div class="dd-wager-row">
+        <input id="dd-wager-input" type="number" placeholder="Wager $" min="0"/>
+        <button class="btn-gold" onclick="confirmDDWager()">Confirm Capital</button>
+      </div>
+    </div>
+
+    <!-- Buzz box -->
+    <div class="buzz-box" id="buzz-box">
+      <div class="buzz-box-label">🔔 Signal Intercepted</div>
+      <div class="buzz-winner-name" id="buzz-winner-name">Awaiting Feed…</div>
+      <div class="buzz-queue-list" id="buzz-queue-display"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-reveal" onclick="revealAnswer()">👁 Decode Bill</button>
+      <button class="btn-green" onclick="markCorrect()">✓ Accept Manifest</button>
+      <button class="btn-red"   onclick="markWrong()">✗ Reject Cargo</button>
+      <button class="btn-close-modal" onclick="closeQuestion()">✕ Stow Away</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL JEOPARDY MODAL -->
+<div class="overlay" id="fj-modal">
+  <div id="fj-panel">
+    <div class="fj-title">✦ Final Port Strategy ✦</div>
+    <div class="fj-category" id="fj-cat"></div>
+
+    <!-- Phase 1 -->
+    <div id="fj-wager-phase">
+      <div id="fj-wager-note">Strategic trade sector declared above. Submit venture capital before deep water parameters initialize.</div>
+      <div class="fj-wagers" id="fj-wagers"></div>
+      <div class="fj-actions">
+        <button class="btn-gold" onclick="revealFJQuestion()">📖 Release Manifest</button>
+      </div>
+    </div>
+
+    <!-- Phase 2 -->
+    <div id="fj-question-phase">
+      <div class="fj-question" id="fj-question">—</div>
+      <div class="fj-wagers" id="fj-scoring-rows"></div>
+      <div id="fj-answer-reveal" style="color:var(--green);font-weight:700;font-size:1.1rem;margin-bottom:16px;text-align:center;min-height:28px;"></div>
+      <div class="fj-actions">
+        <button class="btn-reveal" onclick="revealFJAnswer()">👁 Audit Logistics</button>
+        <button class="btn-gold"   onclick="finishFinalJeopardy()">🏆 Conclude Fiscal Year</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER SCREEN -->
+<div id="winner-screen" class="hidden">
+  <div class="winner-title">⚓ Logistical Dominance!</div>
+  <div style="color:var(--subtext);font-size:1rem;letter-spacing:0.1em;margin-bottom:4px;">CHIEF PORT AUTHORITY</div>
+  <div class="winner-name" id="winner-name-display">—</div>
+  <div class="final-leaderboard" id="final-leaderboard"></div>
+  <button class="btn-gold" onclick="location.reload()" style="padding:12px 32px;font-size:1rem;">🔄 Reset Operations</button>
+</div>
+
+<!-- PHONE / BUZZER SCREEN -->
+<div id="phone-screen" class="hidden">
+
+  <div id="join-panel">
+    <div class="join-logo">⚓ Marine Terminal Jeopardy</div>
+    <div class="join-subtitle">Initializing uplink to</div>
+    <div class="join-room-badge">TERMINAL HUB <span id="join-room-display"></span></div>
+    <input id="joinName" placeholder="Call sign / Name…" onkeydown="if(event.key==='Enter')joinGame()"/>
+    <button id="btn-join" onclick="joinGame()">Establish Comms →</button>
+  </div>
+
+  <div id="buzzer-panel" class="hidden">
+    <div class="p-display-name" id="p-name-display"></div>
+    <div class="p-display-room" id="p-room-display"></div>
+    <div class="p-my-score">Liquid Assets: <span id="p-my-score-val">$0</span></div>
+
+    <div id="phone-wager-panel" class="hidden">
+      <div class="phone-wager-title">✦ Daily Double — Commit Venture Capital</div>
+      <input id="phone-wager-amount" type="number" placeholder="$ Wager Amount" min="0"/>
+      <button id="btn-submit-wager" onclick="submitPhoneWager()">Transmit Investment</button>
+    </div>
+
+    <!-- Phone-side answer timer -->
+    <div id="phone-timer-wrap">
+      <span style="font-size:0.72rem;color:var(--subtext);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;">⏱ Demurrage Window</span>
+      <div id="phone-timer-bar-wrap"><div id="phone-timer-bar"></div></div>
+      <div id="phone-timer-num">10</div>
+    </div>
+
+    <button id="buzz-btn" onclick="sendBuzz()">BUZZ!</button>
+    <div id="phone-status">Monitoring radio frequencies…</div>
+
+    <div class="phone-lb" id="phone-lb"></div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// FIREBASE CONFIG (Retained from original)
+// ══════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey: "AIzaSyAB3W9sbaKnrrCToAz94NOQyjR4ZOFtzvM",
+  authDomain: "buzzer-a9561.firebaseapp.com",
+  databaseURL: "https://buzzer-a9561-default-rtdb.firebaseio.com",
+  projectId: "buzzer-a9561",
+  storageBucket: "buzzer-a9561.firebasestorage.app",
+  messagingSenderId: "399233706474",
+  appId: "1:399233706474:web:3236a9ff5923219f45aa93"
+});
+const db = firebase.database();
+
+// ══════════════════════════════════════════════
+// GAME DATA — ROUND 1
+// ══════════════════════════════════════════════
+const ROUND1 = {
+  label: "Shift 1: Harbor Masters & Foundations",
+  values: [200, 400, 600, 800, 1000],
+  categories: [
+    {
+      name: "Waterfront Engineering",
+      clues: [
+        { q: "This steel or concrete retaining wall system is driven deep along sea berthing lanes to secure soils behind a wharf.", a: "Sheet pile (or bulkhead)" },
+        { q: "To protect structural piles from marine borers and corrosion, engineers wrap them in structural jackets or use this systemic electricity-based prevention method.", a: "Cathodic protection" },
+        { q: "When a deep vessel approaches a dock, these heavy-duty rubber or foam bumpers compress to absorb mechanical impact energy.", a: "Fenders" },
+        { q: "This open-style waterfront platform structure is built over water supported on piles, unlike a solid-filled gravity quay wall.", a: "Pier (or Wharf/Trestle)" },
+        { q: "This critical soil structural failure can happen behind a bulk bulkhead during seismic events if fine water-logged sand loses all load capacity.", a: "Liquefaction" }
+      ]
+    },
+    {
+      name: "Trade Economics",
+      clues: [
+        { q: "What does the ubiquitous shipping abbreviation TEU stand for in freight tracking statistics?", a: "Twenty-foot Equivalent Unit" },
+        { q: "This specific charge is levied by terminal operators against shipping lines for containers left sitting past their free-time allowance.", a: "Demurrage" },
+        { q: "This structural maritime trade component denotes the geometric water surface distance a fully packed container boat pushes downwards.", a: "Draft (or Draught)" },
+        { q: "A vessel routing model where global goods unload from mega-ships at a central zone onto smaller localized domestic feeders.", a: "Hub and Spoke" },
+        { q: "This specific Incoterm states that a cargo seller is responsible right up until items pass over the vessel's deck rail at origin.", a: "FOB (Free on Board)" }
+      ]
+    },
+    {
+      name: "Landside Layouts",
+      clues: [
+        { q: "This row or bay grid zone is where standard intermodal boxes are grouped by weight and destination before loading manifests execute.", a: "Stacking yard" },
+        { q: "The localized acronym 'TOS' stands for this primary piece of logistical software that monitors truck appointments, gates, and crane moves.", a: "Terminal Operating System" },
+        { q: "These large structural wheel-mounted yard systems bridge across container lanes to systematically shift inventory from trucks to rows.", a: "RTG (Rubber Tired Gantry Crane) or RMG" },
+        { q: "This processing building zone represents where incoming container trucks have security, scale weight, and customs paperwork checked.", a: "Gate complex (or Intermodal Gate)" },
+        { q: "When a terminal links directly with locomotives to move ocean boxes far inland without local roads, it uses this mode.", a: "On-dock rail" }
+      ]
+    },
+    {
+      name: "US mega ports",
+      clues: [
+        { q: "This massive multi-terminal complex ranks securely as the busiest container port in the United States by container volume.", a: "Port of Los Angeles" },
+        { q: "This East Coast behemoth complex features major terminals like Maher and APM, handling the largest volume on the Atlantic seaboard.", a: "Port of New York and New Jersey" },
+        { q: "This Southern state port authority runs the sprawling Garden City Terminal, a massive single-operator container site.", a: "Port of Savannah (Georgia Ports Authority)" },
+        { q: "The strategic lifting of this historic structure's roadway in NY/NJ allowed modern Neo-Panamax container ships to travel up to Newark Bay.", a: "Bayonne Bridge" },
+        { q: "This Pacific Northwest alliance combines the marine terminal assets of Seattle and this nearby heavy industrial harbor city.", a: "Tacoma" }
+      ]
+    },
+    {
+      name: "Global Gateways",
+      clues: [
+        { q: "This massive gateway handles the highest annual container volume of any seaport on Earth.", a: "Port of Shanghai" },
+        { q: "This primary European hub handles the largest container throughput on the continent.", a: "Port of Rotterdam" },
+        { q: "This city-state terminal operator features completely automated mega-yards at its brand new Tuas Port site.", a: "PSA Singapore" },
+        { q: "This iconic canal's massive multi-billion dollar neo-panamax locks upgrade completely changed terminal design depths worldwide.", a: "Panama Canal" },
+        { q: "This major Middle Eastern hub terminal run by DP World features the largest man-made harbor on the planet.", a: "Jebel Ali (Dubai)" }
+      ]
+    }
+  ]
+};
+
+// ══════════════════════════════════════════════
+// GAME DATA — ROUND 2
+// ══════════════════════════════════════════════
+const ROUND2 = {
+  label: "Shift 2: Heavy Cranes & Hydrodynamics",
+  values: [400, 800, 1200, 1600, 2000],
+  categories: [
+    {
+      name: "Wharf Dynamics",
+      clues: [
+        { q: "This continuous structural line of giant seaside cranes is denoted by the acronym STS.", a: "Ship-to-Shore" },
+        { q: "To allow modern deep-draft vessels to safely berth, engineers execute this heavy industrial seabed scraping operation.", a: "Dredging" },
+        { q: "These massive circular cast-steel pillars are anchored deeply along a wharf edge to secure a vessel's mooring lines.", a: "Bollards" },
+        { q: "This hydrodynamic wave reflection dynamic occurs inside narrow harbor slips, causing moored vessels to sway aggressively.", a: "Seiche (or surge resonance)" },
+        { q: "The deep vertical soil distance calculated under a pile tip to ensure high structural skin friction is called this.", a: "Embedment depth" }
+      ]
+    },
+    {
+      name: "Intermodal Assets",
+      clues: [
+        { q: "These low-profile wheeled chassis frames are pulled by terminal tractors to ferry boxes rapidly from ship to stack.", a: "Bomb carts" },
+        { q: "This high-reaching mechanical vehicle uses an overhead spreader frame to pick up, carry, and stack ocean containers.", a: "Reach stacker" },
+        { q: "Unlike standard RTGs, these specialized tall vehicles straddle a single lane of containers and move them without external trucks.", a: "Straddle carriers" },
+        { q: "These modern robotic automated terminal vehicles move container boxes without any onboard human driver.", a: "AGVs (Automated Guided Vehicles)" },
+        { q: "This is the structural frame piece at the corners of all standard containers that twist-locks hook into for crane lifts.", a: "Corner castings" }
+      ]
+    },
+    {
+      name: "Pavement & Soil",
+      clues: [
+        { q: "This specific heavy-duty type of segmented concrete block pavement is highly favored in yards due to high wheel load resistance.", a: "Interlocking concrete pavers" },
+        { q: "The concentrated vertical weight force applied downward onto terminal pavement by a container crane's massive wheel clusters.", a: "Wheel load (or outrigger load)" },
+        { q: "To fix swampy coastal terminal terrain before construction, engineers install wick drains and apply this massive structural soil preload process.", a: "Surcharging (or consolidation preloading)" },
+        { q: "The specialized steel container crane beam tracks built into wharf structures to carry the massive load of STS units.", a: "Crane rails" },
+        { q: "This specific type of rigid foundation pad is poured across whole landside rows to prevent high stacks from tipping over unevenly.", a: "Equipment mattress (or raft/mat foundation)" }
+      ]
+    },
+    {
+      name: "Terminal Economics",
+      clues: [
+        { q: "This common metric measures the efficiency of ship operations, calculated by how many total container boxes are moved per hour.", a: "Crane productivity (or Net Moves Per Hour)" },
+        { q: "A shipping term for a container vessel that has zero structural cargo gear onboard, entirely relying on terminal STS equipment.", a: "Gearless vessel" },
+        { q: "This operational penalty happens when incoming cargo trucks wait long, costly hours outside gate kiosks due to system crashes.", a: "Turn time congestion" },
+        { q: "The terminal leasing model where a public port authority builds a site and leases the operational rights to a private stevedore line.", a: "Landlord port" },
+        { q: "When terminal space runs short, yards must stack boxes higher; this index measures the average count of containers stacked vertically.", a: "Stacking density factor" }
+      ]
+    },
+    {
+      name: "Global Waterways",
+      clues: [
+        { q: "This African shortcut waterway's temporary blockage by the ship 'Ever Given' threw global marine terminal schedules into absolute chaos.", a: "Suez Canal" },
+        { q: "This vital Asian strait between Malaysia and Indonesia sees a massive fraction of global terminal container ship traffic pass through it.", a: "Strait of Malacca" },
+        { q: "This massive river delta port cluster in southern China includes Hong Kong, Shenzhen, and Guangzhou terminals.", a: "Pearl River Delta" },
+        { q: "This major German deepwater industrial gateway sits situated along the Elbe River, far inland from the actual North Sea.", a: "Port of Hamburg" },
+        { q: "This specific English metric denotes the absolute absolute maximum size vessel a terminal can take based on lock and draft sizes.", a: "Vessel Class (e.g., Post-Panamax, ULCV)" }
+      ]
+    }
+  ]
+};
+
+// ══════════════════════════════════════════════
+// FINAL JEOPARDY
+// ══════════════════════════════════════════════
+const FINAL_JEOPARDY = {
+  category: "Maritime Logistics History",
+  q: "This American trucking magnate is widely credited with inventing the modern intermodal shipping container, transforming global terminal operations forever when his converted ship Ideal-X sailed in 1956.",
+  a: "Malcolm McLean"
+};
+
+// ══════════════════════════════════════════════
+// GAME ENGINE JAVASCRIPT (Identical Architecture)
+// ══════════════════════════════════════════════
+function pickDailyDoubles(numCats, numClues, count) {
+  count = count || 2;
+  const positions = new Set();
+  while (positions.size < count) {
+    const c = Math.floor(Math.random() * numCats);
+    const q = Math.floor(Math.random() * numClues);
+    if (q === 0 && Math.random() < 0.8) continue;
+    positions.add(c + "-" + q);
+  }
+  return positions;
+}
+
+function genRoom() {
+  return Math.random().toString(36).slice(2, 6).toUpperCase();
+}
+function encodeKey(name) {
+  return name.replace(/[.#$\[\]/]/g, "_");
+}
+
+const params    = new URLSearchParams(location.search);
+const paramRoom = params.get("room");
+const isHost    = !paramRoom;
+
+const room       = paramRoom ? paramRoom.toUpperCase() : genRoom();
+let players      = [];
+let scores       = {};
+let usedR1       = {};
+let usedR2       = {};
+let ddR1         = new Set();
+let ddR2         = new Set();
+let currentRound = 1;
+let currentKey   = null;
+let currentQ     = null;
+let buzzLocked   = false;
+let buzzWinner   = null;
+let buzzQueue    = [];
+let ddPlayer     = null;
+let ddWager      = 0;
+let myName       = null;
+
+const BUZZ_TIMER_SECONDS = 10;
+let buzzTimerInterval = null;
+let buzzTimerRemaining = 0;
+let fjWagers = {};
+
+if (!isHost) {
+  document.getElementById("host-screen").classList.add("hidden");
+  document.getElementById("phone-screen").classList.remove("hidden");
+  document.getElementById("join-room-display").textContent = room;
+  listenAsPlayer();
+} else {
+  ddR1 = pickDailyDoubles(5, 5);
+  ddR2 = pickDailyDoubles(5, 5);
+}
+
+function addPlayer() {
+  const inp = document.getElementById("playerName");
+  const n = inp.value.trim();
+  if (!n || players.includes(n)) { inp.focus(); return; }
+  players.push(n);
+  scores[n] = 0;
+  inp.value = "";
+  renderPlayerChips();
+  hostSyncPlayerToFB(n, 0);
+}
+
+function removePlayer(n) {
+  players = players.filter(function(p) { return p !== n; });
+  delete scores[n];
+  renderPlayerChips();
+  db.ref("rooms/" + room + "/players/" + encodeKey(n)).remove();
+}
+
+function renderPlayerChips() {
+  document.getElementById("player-chips").innerHTML =
+    players.map(function(p) {
+      return '<div class="p-chip">' + p +
+        '<span class="rm" onclick="removePlayer(\'' + p.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">✕</span>' +
+        '</div>';
+    }).join("");
+}
+
+function hostSyncPlayerToFB(name, score) {
+  db.ref("rooms/" + room + "/players/" + encodeKey(name))
+    .set({ name: name, score: score });
+}
+
+function syncScoreToFB(name) {
+  db.ref("rooms/" + room + "/players/" + encodeKey(name) + "/score")
+    .set(scores[name]);
+}
+
+function startGame() {
+  if (players.length === 0) {
+    alert("Manifest at least one terminal operator first!");
+    return;
+  }
+  document.getElementById("setup-panel").classList.add("hidden");
+  document.getElementById("btn-start-game").classList.add("hidden");
+  document.getElementById("room-pill").classList.remove("hidden");
+  document.getElementById("room-pill").textContent = "PORT UNIT " + room;
+  document.getElementById("round-pill").classList.remove("hidden");
+  document.getElementById("round-pill").textContent = "Shift 1";
+  document.getElementById("btn-round2").classList.remove("hidden");
+  document.getElementById("board-label").classList.remove("hidden");
+  document.getElementById("board-label").textContent = ROUND1.label;
+
+  buildBoard(ROUND1, usedR1, ddR1);
+  renderScores();
+
+  db.ref("rooms/" + room + "/players").on("value", function(snap) {
+    const data = snap.val() || {};
+    Object.entries(data).forEach(function(entry) {
+      const name = entry[1].name;
+      const score = entry[1].score || 0;
+      if (!players.includes(name)) {
+        players.push(name);
+        scores[name] = score;
+        renderPlayerChips();
+        renderScores();
+      } else {
+        scores[name] = score;
+        renderScores();
+      }
+    });
+  });
+
+  db.ref("rooms/" + room + "/buzz").on("value", function(snap) {
+    const d = snap.val();
+    if (!d) {
+      buzzWinner = null;
+      buzzQueue  = [];
+      document.getElementById("buzz-winner-name").textContent = "Awaiting Radio Signal…";
+      document.getElementById("buzz-queue-display").textContent = "";
+      stopBuzzTimer();
+      return;
+    }
+    const q = d.queue || [d.winner];
+    const prevWinner = buzzWinner;
+    buzzWinner = d.winner;
+    buzzQueue  = q;
+    document.getElementById("buzz-winner-name").innerHTML =
+      '<span style="color:var(--cargo-orange)">⚓</span> ' + buzzWinner;
+    if (q.length > 1) {
+      document.getElementById("buzz-queue-display").textContent =
+        "Queue Order: " + q.slice(1).join(" → ");
+    } else {
+      document.getElementById("buzz-queue-display").textContent = "";
+    }
+    if (prevWinner !== buzzWinner) {
+      startBuzzTimer();
+    }
+  });
+
+  db.ref("rooms/" + room + "/game").set({ round: 1, open: false });
+}
+
+function startBuzzTimer() {
+  stopBuzzTimer();
+  buzzTimerRemaining = BUZZ_TIMER_SECONDS;
+  const wrap  = document.getElementById("buzz-timer-wrap");
+  const bar   = document.getElementById("buzz-timer-bar");
+  const num   = document.getElementById("buzz-timer-num");
+
+  wrap.classList.add("active");
+  bar.classList.remove("urgent");
+  num.classList.remove("urgent");
+  num.textContent = buzzTimerRemaining;
+  bar.style.width = "100%";
+
+  db.ref("rooms/" + room + "/timer").set({ start: Date.now(), duration: BUZZ_TIMER_SECONDS });
+
+  buzzTimerInterval = setInterval(function() {
+    buzzTimerRemaining--;
+    const pct = (buzzTimerRemaining / BUZZ_TIMER_SECONDS) * 100;
+    bar.style.width = pct + "%";
+    num.textContent = buzzTimerRemaining;
+
+    if (buzzTimerRemaining <= 3) {
+      bar.classList.add("urgent");
+      num.classList.add("urgent");
+    }
+
+    if (buzzTimerRemaining <= 0) {
+      stopBuzzTimer();
+    }
+  }, 1000);
+}
+
+function stopBuzzTimer() {
+  if (buzzTimerInterval) {
+    clearInterval(buzzTimerInterval);
+    buzzTimerInterval = null;
+  }
+  const wrap = document.getElementById("buzz-timer-wrap");
+  if (wrap) wrap.classList.remove("active");
+  db.ref("rooms/" + room + "/timer").remove();
+}
+
+function buildBoard(roundData, usedMap, ddSet) {
+  const board = document.getElementById("board");
+  const n = roundData.categories.length;
+  board.style.gridTemplateColumns = "repeat(" + n + ", 1fr)";
+  board.innerHTML = "";
+
+  roundData.categories.forEach(function(cat) {
+    const h = document.createElement("div");
+    h.className = "cat-header";
+    h.textContent = cat.name;
+    board.appendChild(h);
+  });
+
+  roundData.values.forEach(function(pts, qi) {
+    roundData.categories.forEach(function(cat, ci) {
+      const key = ci + "-" + qi;
+      const tile = document.createElement("div");
+      tile.className = "tile" + (usedMap[key] ? " used" : "");
+      tile.id = "tile-" + key;
+      tile.textContent = usedMap[key] ? "" : "$" + pts;
+      tile.onclick = (function(ci2, qi2) {
+        return function() { openQuestion(ci2, qi2, roundData, usedMap, ddSet); };
+      })(ci, qi);
+      board.appendChild(tile);
+    });
+  });
+}
+
+function openQuestion(ci, qi, roundData, usedMap, ddSet) {
+  const key = ci + "-" + qi;
+  if (usedMap[key]) return;
+
+  const cat  = roundData.categories[ci];
+  const clue = cat.clues[qi];
+  const val  = roundData.values[qi];
+  const isDD = ddSet.has(key);
+
+  currentKey = key;
+  currentQ   = { q: clue.q, a: clue.a, cat: cat.name, val: val, isDD: isDD };
+
+  buzzLocked = false;
+  buzzWinner = null;
+  buzzQueue  = [];
+  ddPlayer   = null;
+  ddWager    = 0;
+
+  stopBuzzTimer();
+  db.ref("rooms/" + room + "/buzz").remove();
+  db.ref("rooms/" + room + "/timer").remove();
+
+  if (isDD) {
+    db.ref("rooms/" + room + "/game").set({
+      open: false,
+      dailyDouble: true,
+      cat: cat.name,
+      val: val,
+      round: currentRound
+    });
+  } else {
+    db.ref("rooms/" + room + "/game").set({
+      open: true,
+      dailyDouble: false,
+      cat: cat.name,
+      val: val,
+      round: currentRound
+    });
+  }
+
+  document.getElementById("m-cat").textContent  = cat.name.toUpperCase();
+  document.getElementById("m-pts").textContent  = "$" + val;
+  document.getElementById("answer-reveal").textContent = "";
+  document.getElementById("buzz-winner-name").textContent = "Awaiting Uplink…";
+  document.getElementById("buzz-queue-display").textContent = "";
+
+  if (isDD) {
+    document.getElementById("m-dd").classList.remove("hidden");
+    document.getElementById("dd-wager-panel").classList.remove("hidden");
+    document.getElementById("buzz-box").style.display = "none";
+    document.getElementById("qtext").textContent = "✦ Hydrographic Daily Double! ✦";
+    document.getElementById("dd-player-btns").innerHTML =
+      players.map(function(p) {
+        return '<button class="dd-player-btn" onclick="selectDDPlayer(\'' +
+          p.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',this)">' + p + '</button>';
+      }).join("");
+    document.getElementById("dd-wager-input").value = "";
+  } else {
+    document.getElementById("m-dd").classList.add("hidden");
+    document.getElementById("dd-wager-panel").classList.add("hidden");
+    document.getElementById("buzz-box").style.display = "";
+    document.getElementById("qtext").textContent = clue.q;
+  }
+
+  document.getElementById("q-modal").classList.add("show");
+}
+
+function selectDDPlayer(name, btn) {
+  ddPlayer = name;
+  document.querySelectorAll(".dd-player-btn").forEach(function(b) { b.classList.remove("selected"); });
+  btn.classList.add("selected");
+}
+
+function confirmDDWager() {
+  if (!ddPlayer) { alert("Select an operator first!"); return; }
+  const w = parseInt(document.getElementById("dd-wager-input").value) || 0;
+  if (w < 0) { alert("Wager must be ≥ 0"); return; }
+  ddWager = w;
+  document.getElementById("qtext").textContent = currentQ.q;
+  document.getElementById("dd-wager-panel").classList.add("hidden");
+  document.getElementById("buzz-box").style.display = "";
+  document.getElementById("buzz-winner-name").innerHTML =
+    '<span style="color:var(--cargo-orange)">✦</span> ' + ddPlayer + ' backed with $' + ddWager;
+  db.ref("rooms/" + room + "/game").update({ open: true, ddPlayer: ddPlayer, ddWager: ddWager });
+}
+
+function revealAnswer() {
+  document.getElementById("answer-reveal").textContent = "✅ " + currentQ.a;
+}
+
+function markCorrect() {
+  if (currentQ.isDD) {
+    if (!ddPlayer) { alert("No operator locked!"); return; }
+    scores[ddPlayer] = (scores[ddPlayer] || 0) + ddWager;
+    syncScoreToFB(ddPlayer);
+    launchConfetti();
+    finishQuestion();
+  } else {
+    if (!buzzWinner) { alert("No radio buzz intercepted!"); return; }
+    scores[buzzWinner] = (scores[buzzWinner] || 0) + currentQ.val;
+    syncScoreToFB(buzzWinner);
+    launchConfetti();
+    finishQuestion();
+  }
+}
+
+function markWrong() {
+  stopBuzzTimer();
+
+  if (currentQ.isDD) {
+    if (ddPlayer) {
+      scores[ddPlayer] = (scores[ddPlayer] || 0) - ddWager;
+      syncScoreToFB(ddPlayer);
+    }
+    finishQuestion();
+    return;
+  }
+
+  if (buzzWinner) {
+    scores[buzzWinner] = (scores[buzzWinner] || 0) - Math.floor(currentQ.val / 2);
+    syncScoreToFB(buzzWinner);
+  }
+
+  buzzWinner = null;
+  buzzQueue  = [];
+  db.ref("rooms/" + room + "/buzz").remove();
+  db.ref("rooms/" + room + "/game").update({ open: true, rebuzz: Date.now() });
+
+  document.getElementById("buzz-winner-name").textContent = "Awaiting frequency clear (Re-buzz)…";
+  document.getElementById("buzz-queue-display").textContent = "";
+  renderScores();
+}
+
+function finishQuestion() {
+  stopBuzzTimer();
+  const usedMap = currentRound === 1 ? usedR1 : usedR2;
+  usedMap[currentKey] = true;
+  const tile = document.getElementById("tile-" + currentKey);
+  if (tile) { tile.classList.add("used"); tile.textContent = ""; }
+
+  db.ref("rooms/" + room + "/buzz").remove();
+  db.ref("rooms/" + room + "/timer").remove();
+  db.ref("rooms/" + room + "/game").set({ open: false, round: currentRound });
+  document.getElementById("q-modal").classList.remove("show");
+  renderScores();
+}
+
+function closeQuestion() {
+  stopBuzzTimer();
+  document.getElementById("dd-wager-panel").classList.add("hidden");
+  document.getElementById("buzz-box").style.display = "";
+  document.getElementById("m-dd").classList.add("hidden");
+
+  if (currentKey) {
+    const usedMap = currentRound === 1 ? usedR1 : usedR2;
+    usedMap[currentKey] = true;
+    const tile = document.getElementById("tile-" + currentKey);
+    if (tile) { tile.classList.add("used"); tile.textContent = ""; }
+  }
+
+  db.ref("rooms/" + room + "/game").set({ open: false, round: currentRound });
+  db.ref("rooms/" + room + "/buzz").remove();
+  db.ref("rooms/" + room + "/timer").remove();
+  document.getElementById("q-modal").classList.remove("show");
+}
+
+function goToRound2() {
+  if (!confirm("Advance to Shift 2 — Double Jeopardy? This action cannot be reversed.")) return;
+  currentRound = 2;
+  document.getElementById("round-pill").textContent = "Shift 2";
+  document.getElementById("board-label").textContent = ROUND2.label;
+  document.getElementById("btn-round2").classList.add("hidden");
+  document.getElementById("btn-final").classList.remove("hidden");
+  buildBoard(ROUND2, usedR2, ddR2);
+  db.ref("rooms/" + room + "/game").set({ open: false, round: 2 });
+}
+
+function startFinalJeopardy() {
+  if (!confirm("Initiate Final Port Strategy? All operators must submit venture capital stakes before variables load."));
+
+  fjWagers = {};
+
+  document.getElementById("fj-cat").textContent = FINAL_JEOPARDY.category.toUpperCase();
+  document.getElementById("fj-question").textContent = FINAL_JEOPARDY.q;
+  document.getElementById("fj-answer-reveal").textContent = "";
+
+  const maxWager = currentRound === 2 ? 2000 : 1000;
+  const wagerRows = players.map(function(p) {
+    const safeKey = encodeKey(p);
+    const curScore = scores[p] || 0;
+    return '<div class="fj-player-row" id="fj-wrow-' + safeKey + '">' +
+      '<div class="fj-player-name">' + p + '</div>' +
+      '<div class="fj-player-score">$' + curScore + '</div>' +
+      '<input class="fj-wager-in" id="fj-wager-' + safeKey + '" type="number" placeholder="Venture Cap" min="0" max="' + Math.max(curScore, maxWager) + '"/>' +
+      '</div>';
+  }).join("");
+  document.getElementById("fj-wagers").innerHTML = wagerRows;
+
+  document.getElementById("fj-wager-phase").style.display = "block";
+  document.getElementById("fj-question-phase").style.display = "none";
+
+  db.ref("rooms/" + room + "/game").set({ open: false, finalJeopardy: true, round: 3 });
+  document.getElementById("fj-modal").classList.add("show");
+}
+
+function revealFJQuestion() {
+  players.forEach(function(p) {
+    const safeKey = encodeKey(p);
+    const inp = document.getElementById("fj-wager-" + safeKey);
+    fjWagers[p] = inp ? (parseInt(inp.value) || 0) : 0;
+  });
+
+  const scoringRows = players.map(function(p) {
+    const safeKey = encodeKey(p);
+    const safeP   = p.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const curScore = scores[p] || 0;
+    const wager   = fjWagers[p] || 0;
+    return '<div class="fj-player-row" id="fj-row-' + safeKey + '">' +
+      '<div class="fj-player-name">' + p + '</div>' +
+      '<div class="fj-player-score" id="fj-score-' + safeKey + ' text-color">$' + curScore + '</div>' +
+      '<div class="fj-locked-wager">Stake: $' + wager + '</div>' +
+      '<button class="fj-correct-btn" onclick="fjScore(\'' + safeP + '\',true)">✓</button>' +
+      '<button class="fj-wrong-btn"   onclick="fjScore(\'' + safeP + '\',false)">✗</button>' +
+      '</div>';
+  }).join("");
+  document.getElementById("fj-scoring-rows").innerHTML = scoringRows;
+
+  document.getElementById("fj-wager-phase").style.display = "none";
+  document.getElementById("fj-question-phase").style.display = "block";
+}
+
+function revealFJAnswer() {
+  document.getElementById("fj-answer-reveal").textContent = "✅ " + FINAL_JEOPARDY.a;
+}
+
+function fjScore(name, correct) {
+  const safeKey = encodeKey(name);
+  const wager   = fjWagers[name] || 0;
+  scores[name]  = (scores[name] || 0) + (correct ? wager : -wager);
+  syncScoreToFB(name);
+  const row = document.getElementById("fj-row-' + safeKey + '");
+  if (row) row.style.opacity = "0.5";
+  const scoreEl = document.getElementById("fj-score-" + safeKey);
+  if (scoreEl) scoreEl.textContent = "$" + scores[name];
+}
+
+function finishFinalJeopardy() {
+  document.getElementById("fj-modal").classList.remove("show");
+  showWinner();
+}
+
+function showWinner() {
+  document.getElementById("host-screen").classList.add("hidden");
+  document.getElementById("winner-screen").classList.remove("hidden");
+
+  const sorted = players.slice().sort(function(a, b) { return (scores[b]||0) - (scores[a]||0); });
+  const winner = sorted[0];
+
+  document.getElementById("winner-name-display").textContent = winner;
+
+  const medals = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"];
+  document.getElementById("final-leaderboard").innerHTML =
+    sorted.map(function(p, i) {
+      return '<div class="lb-row">' +
+        '<div class="lb-rank ' + (i===0?'gold':'') + '">' + (medals[i]||i+1) + '</div>' +
+        '<div class="lb-name">' + p + '</div>' +
+        '<div class="lb-score">$' + (scores[p]||0) + '</div>' +
+        '</div>';
+    }).join("");
+
+  db.ref("rooms/" + room + "/game").set({ over: true, winner: winner });
+  launchConfetti(120);
+}
+
+function renderScores() {
+  if (players.length === 0) return;
+  const maxScore = Math.max.apply(null, players.map(function(p) { return scores[p]||0; }));
+  document.getElementById("scoreboard").innerHTML =
+    players.map(function(p) {
+      const s = scores[p] || 0;
+      const isLeading = s === maxScore && players.length > 1;
+      return '<div class="score-card ' + (isLeading?'leading':'') + '">' +
+        '<div class="sc-name">' + p + '</div>' +
+        '<div class="sc-val ' + (s<0?'negative':'') + '">$" + s + "</div>' +
+        '</div>';
+    }).join("");
+}
+
+function toggleQR() {
+  const panel  = document.getElementById("qr-panel");
+  const isOpen = panel.classList.toggle("open");
+  if (isOpen) {
+    document.getElementById("qr-box").innerHTML = "";
+    const joinURL = location.origin + location.pathname + "?room=" + room;
+    document.getElementById("qr-link").textContent = joinURL;
+    new QRCode(document.getElementById("qr-box"), {
+      text: joinURL,
+      width: 210, height: 210,
+      colorDark: "#000", colorLight: "#fff"
+    });
+  }
+}
+
+function joinGame() {
+  const n = document.getElementById("joinName").value.trim();
+  if (!n) return;
+  myName = n;
+  document.getElementById("join-panel").classList.add("hidden");
+  document.getElementById("buzzer-panel").classList.remove("hidden");
+  document.getElementById("p-name-display").textContent = myName;
+  document.getElementById("p-room-display").textContent = "COMM CHANNEL " + room;
+
+  db.ref("rooms/" + room + "/players/" + encodeKey(myName))
+    .transaction(function(cur) {
+      if (!cur) return { name: myName, score: 0 };
+      return { name: myName, score: cur.score || 0 };
+    });
+}
+
+function sendBuzz() {
+  const btn = document.getElementById("buzz-btn");
+  if (btn.classList.contains("locked")) return;
+
+  db.ref("rooms/" + room + "/buzz").transaction(function(cur) {
+    if (!cur) {
+      return { winner: myName, queue: [myName], time: Date.now() };
+    }
+    const q = cur.queue || [cur.winner];
+    if (!q.includes(myName)) {
+      q.push(myName);
+      return { winner: cur.winner, queue: q, time: cur.time };
+    }
+    return;
+  });
+}
+
+function submitPhoneWager() {
+  const w = parseInt(document.getElementById("phone-wager-amount").value) || 0;
+  db.ref("rooms/" + room + "/playerWagers/" + encodeKey(myName)).set(w);
+  document.getElementById("phone-wager-panel").classList.add("hidden");
+  document.getElementById("phone-status").textContent = "Capital wired successfully! $" + w;
+}
+
+let phoneTimerInterval = null;
+
+function startPhoneTimer(durationSec, startTimestamp) {
+  stopPhoneTimer();
+  const wrap = document.getElementById("phone-timer-wrap");
+  const bar  = document.getElementById("phone-timer-bar");
+  const num  = document.getElementById("phone-timer-num");
+
+  wrap.classList.add("active");
+  bar.classList.remove("urgent");
+  num.classList.remove("urgent");
+
+  function tick() {
+    const elapsed = (Date.now() - startTimestamp) / 1000;
+    const remaining = Math.max(0, durationSec - elapsed);
+    const pct = (remaining / durationSec) * 100;
+    bar.style.width = pct + "%";
+    num.textContent = Math.ceil(remaining);
+
+    if (remaining <= 3) {
+      bar.classList.add("urgent");
+      num.classList.add("urgent");
+    }
+
+    if (remaining <= 0) {
+      stopPhoneTimer();
+    }
+  }
+  tick();
+  phoneTimerInterval = setInterval(tick, 250);
+}
+
+function stopPhoneTimer() {
+  if (phoneTimerInterval) {
+    clearInterval(phoneTimerInterval);
+    phoneTimerInterval = null;
+  }
+  const wrap = document.getElementById("phone-timer-wrap");
+  if (wrap) wrap.classList.remove("active");
+}
+
+function listenAsPlayer() {
+  const statusEl = document.getElementById("phone-status");
+  const buzzBtn  = document.getElementById("buzz-btn");
+
+  db.ref("rooms/" + room + "/timer").on("value", function(snap) {
+    const t = snap.val();
+    if (!t) {
+      stopPhoneTimer();
+      return;
+    }
+    startPhoneTimer(t.duration, t.start);
+  });
+
+  db.ref("rooms/" + room + "/game").on("value", function(snap) {
+    const g = snap.val();
+    if (!g) return;
+
+    if (g.over) {
+      buzzBtn.classList.add("locked");
+      buzzBtn.classList.remove("buzzed-me");
+      statusEl.className = "";
+      statusEl.textContent = "⚙️ Shift over! " + (g.winner ? g.winner + " wins the contract!" : "");
+      stopPhoneTimer();
+      return;
+    }
+
+    if (g.finalJeopardy) {
+      buzzBtn.classList.add("locked");
+      buzzBtn.classList.remove("buzzed-me");
+      statusEl.className = "";
+      statusEl.textContent = "🌟 Final Strategy Active — Submit venture assets via master panel";
+      document.getElementById("phone-wager-panel").classList.add("hidden");
+      stopPhoneTimer();
+      return;
+    }
+
+    if (g.dailyDouble && !g.open) {
+      buzzBtn.classList.add("locked");
+      buzzBtn.classList.remove("buzzed-me");
+      statusEl.className = "";
+      statusEl.textContent = "✦ Daily Double — Port Authority calculating ledger limits";
+      document.getElementById("phone-wager-panel").classList.add("hidden");
+      stopPhoneTimer();
+      return;
+    }
+
+    document.getElementById("phone-wager-panel").classList.add("hidden");
+
+    if (g.open) {
+      buzzBtn.classList.remove("locked", "buzzed-me");
+      statusEl.className = "";
+      statusEl.textContent = "🔔 TRANSMIT SIGNAL NOW!";
+    } else {
+      buzzBtn.classList.remove("buzzed-me");
+      buzzBtn.classList.add("locked");
+      statusEl.className = "";
+      statusEl.textContent = "Awaiting cargo manifest assignment…";
+      stopPhoneTimer();
+    }
+  });
+
+  db.ref("rooms/" + room + "/buzz").on("value", function(snap) {
+    const d = snap.val();
+    if (!d) {
+      buzzBtn.classList.remove("buzzed-me");
+      return;
+    }
+    const q   = d.queue || [d.winner];
+    const pos = q.indexOf(myName);
+
+    if (d.winner === myName) {
+      buzzBtn.classList.add("buzzed-me");
+      buzzBtn.classList.remove("locked");
+      statusEl.className = "win";
+      statusEl.textContent = "🏆 Signal cleared! State your assessment.";
+    } else if (pos > 0) {
+      statusEl.className = "queue";
+      statusEl.textContent = "Queue position #" + (pos + 1) + " — " + d.winner + " holding frequency";
+    } else {
+      buzzBtn.classList.add("locked");
+      buzzBtn.classList.remove("buzzed-me");
+      statusEl.className = "lose";
+      statusEl.textContent = d.winner + " claimed lane assignment!";
+    }
+  });
+
+  db.ref("rooms/" + room + "/players").on("value", function(snap) {
+    const data = snap.val() || {};
+    const sorted = Object.values(data).sort(function(a,b) { return (b.score||0) - (a.score||0); });
+
+    const me = data[encodeKey(myName)];
+    const scoreEl = document.getElementById("p-my-score-val");
+    if (me && scoreEl) {
+      scoreEl.textContent = "$" + (me.score || 0);
+    }
+
+    const lb = document.getElementById("phone-lb");
+    if (lb) {
+      lb.innerHTML = sorted.map(function(p, i) {
+        return '<div class="phone-lb-row ' + (p.name === myName ? 'me-row' : '') + '">' +
+          '<span class="plb-rank">' + (i+1) + '</span>' +
+          '<span class="plb-name">' + p.name + '</span>' +
+          '<span class="plb-score">$' + (p.score||0) + '</span>' +
+          '</div>';
+      }).join("");
+    }
+  });
+}
+
+function launchConfetti(count) {
+  count = count || 60;
+  const colors = ["#FF6B00","#F5C842","#008080","#00E676","#fff"];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("div");
+    el.className = "confetti-piece";
+    const size = 6 + Math.random() * 8;
+    el.style.cssText =
+      "left:" + (Math.random()*100) + "vw;" +
+      "top:-20px;" +
+      "width:" + size + "px;" +
+      "height:" + size + "px;" +
+      "background:" + colors[Math.floor(Math.random()*colors.length)] + ";" +
+      "animation-duration:" + (1.5 + Math.random()*2) + "s;" +
+      "animation-delay:" + (Math.random()*0.8) + "s;" +
+      "border-radius:" + (Math.random()>0.5?"50%":"2px") + ";" +
+      "transform:rotate(" + (Math.random()*360) + "deg);";
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 3500);
+  }
+}
+</script>
+
+</body>
+</html>
