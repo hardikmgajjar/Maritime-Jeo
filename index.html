@@ -474,7 +474,7 @@ input, select {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--green);
-  margin-bottom: 16px;
+  margin-bottom: 166px;
   min-height: 46px;
   display: flex;
   align-items: center;
@@ -1867,7 +1867,7 @@ function revealFJQuestion() {
     const wager   = fjWagers[p] || 0;
     return '<div class="fj-player-row" id="fj-row-' + safeKey + '">' +
       '<div class="fj-player-name">' + p + '</div>' +
-      '<div class="fj-player-score" id="fj-score-' + safeKey + ' text-color">$' + curScore + '</div>' +
+      '<div class="fj-player-score" id="fj-score-' + safeKey + '">$' + curScore + '</div>' +
       '<div class="fj-locked-wager">Stake: $' + wager + '</div>' +
       '<button class="fj-correct-btn" onclick="fjScore(\'' + safeP + '\',true)">✓</button>' +
       '<button class="fj-wrong-btn"   onclick="fjScore(\'' + safeP + '\',false)">✗</button>' +
@@ -1888,7 +1888,7 @@ function fjScore(name, correct) {
   const wager   = fjWagers[name] || 0;
   scores[name]  = (scores[name] || 0) + (correct ? wager : -wager);
   syncScoreToFB(name);
-  const row = document.getElementById("fj-row-' + safeKey + '");
+  const row = document.getElementById("fj-row-" + safeKey);
   if (row) row.style.opacity = "0.5";
   const scoreEl = document.getElementById("fj-score-" + safeKey);
   if (scoreEl) scoreEl.textContent = "$" + scores[name];
@@ -1931,7 +1931,7 @@ function renderScores() {
       const isLeading = s === maxScore && players.length > 1;
       return '<div class="score-card ' + (isLeading?'leading':'') + '">' +
         '<div class="sc-name">' + p + '</div>' +
-        '<div class="sc-val ' + (s<0?'negative':'') + '">$" + s + "</div>' +
+        '<div class="sc-val ' + (s<0?'negative':'') + '">$' + s + '</div>' +
         '</div>';
     }).join("");
 }
